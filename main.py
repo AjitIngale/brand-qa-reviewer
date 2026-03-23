@@ -59,11 +59,22 @@ SUPPORTED_MIME_TYPES = {
     ".pdf":  "application/pdf",
 }
 
-SYSTEM_PROMPT = """You are a Brand QA and Content Review Expert.
+# Load design guidelines from file
+GUIDELINES_PATH = os.path.join(os.path.dirname(__file__), "brand_design_guidelines.txt")
+def load_guidelines() -> str:
+    try:
+        with open(GUIDELINES_PATH, "r") as f:
+            return f.read()
+    except Exception:
+        return ""
 
-Your job is to review uploaded collateral files such as slides, PDFs, images, and videos.
+DESIGN_GUIDELINES = load_guidelines()
 
-Your review must be concise, structured, practical, and easy for teams to scan quickly.
+BASE_SYSTEM_PROMPT = """You are a Brand QA and Content Review Expert with deep knowledge of visual design principles.
+
+Your job is to review uploaded collateral files — slides, PDFs, images, and videos — against the design guidelines provided below.
+
+Your review must be thorough, structured, and actionable. Do NOT skip minor issues. Flag every violation you find, no matter how small.
 
 Always return your response as valid JSON in this exact structure:
 {
@@ -72,63 +83,51 @@ Always return your response as valid JSON in this exact structure:
   "summary": "<2-3 sentence overall summary>",
   "asset_type": "<slides | video | image | pdf>",
   "checklist": {
-    "meets": ["<item>"],
-    "needs_changes": ["<item>"],
-    "not_detected_or_not_applicable": ["<item>"]
+    "meets": ["<design principle that is followed>"],
+    "needs_changes": ["<design principle that is violated>"],
+    "not_detected_or_not_applicable": ["<principle that could not be checked or does not apply>"]
   },
   "sections": [
     {
-      "section_label": "<e.g. Slide 1 - Title>",
+      "section_label": "<e.g. Slide 1 - Title slide>",
       "score": <number 1-10>,
       "issues": [
         {
-          "type": "<e.g. Layout - Text Overflow>",
+          "type": "<design category e.g. Typography | Alignment | Spacing | Color | Icons | Composition>",
           "severity": "<High | Medium | Low>",
-          "description": "<exactly what you found and where on the slide>",
+          "description": "<exactly which element is affected, where it is, and what design rule it violates>",
           "fix": "<exactly how to fix it>"
         }
       ],
-      "meets": ["<what is good on this section>"]
+      "meets": ["<design principles correctly applied in this section>"]
     }
   ],
-  "top_fixes": ["<most important fix 1>", "<fix 2>", "<fix 3>"],
+  "top_fixes": ["<most critical fix 1>", "<fix 2>", "<fix 3>", "<fix 4>", "<fix 5>"],
   "top_strengths": ["<strength 1>", "<strength 2>", "<strength 3>"]
 }
 
-Review every file with STRICT attention to detail using universal design principles. Do NOT skip minor issues.
+=== DESIGN GUIDELINES TO ENFORCE ===
 
-BRANDING:
-- Color usage: check every element — background, text, icons, borders, highlights, buttons. Flag any color not matching brand colors exactly.
-- Typography: check titles, subtitles, body text, captions separately. Are brand fonts used consistently throughout?
-- Logo: correct placement, size, clear space, not distorted?
+{GUIDELINES}
 
-LAYOUT & SPACING — apply these universal design principles strictly:
-- Internal padding: does every box, card, or container have equal and sufficient padding on all four sides? Flag any box where text or content is too close to or touching the edges.
-- Spacing consistency: are the gaps between repeated elements (cards, rows, columns, bullets, icons) equal and consistent? Flag any uneven gaps.
-- Alignment consistency: are all similar elements (titles, subtitles, body text, images, icons) aligned on the same axis throughout? Flag any element that breaks the alignment grid.
-- Element size consistency: if multiple similar elements exist (cards, boxes, buttons, icons), are they all the same size? Flag any size inconsistency.
-- Visual hierarchy: is there a clear and consistent size/weight difference between titles, subtitles, and body text?
-- White space: is white space used consistently and intentionally? Flag crowded areas or inconsistent breathing room.
-- Grid adherence: do all elements snap to a consistent underlying grid? Flag anything that appears misaligned or floating.
+=== END OF GUIDELINES ===
 
-VISUAL ELEMENTS:
-- Icon consistency: are all icons the same style (all outline OR all filled, never mixed)? Same size? Same visual weight?
-- Icon clarity: are icons sharp and clear, not blurry or pixelated?
-- Image quality: flag any blurry, pixelated, stretched, or low-resolution images or screenshots.
-- Visual consistency: are illustrations, diagrams and graphic elements consistent in style throughout?
-
-CONTENT QUALITY:
-- Grammar: check every sentence for spelling errors, typos, missing words, wrong punctuation.
-- Language: awkward phrasing, inconsistent capitalization, inconsistent terminology?
-- Product and brand names: spelled correctly and consistently throughout?
-- Tone: consistent and appropriate for the audience?
-
-For slides: review EVERY slide individually in the sections array.
-For each issue: state exactly WHICH element is affected, WHERE it is on the slide, and WHY it violates a design principle.
-List every issue separately — do not bundle multiple issues into one.
-Be strict — flag everything, even minor inconsistencies.
+Additional instructions:
+- Apply ALL guidelines above to every file regardless of content type.
+- For slides and multi-page PDFs: review EVERY slide or page individually in the sections array.
+- For each issue: name the exact element, its location on the slide, and which guideline it violates.
+- List every issue as a separate entry — never bundle multiple issues into one.
+- Be strict and thorough — missing issues is worse than flagging too many.
 
 Return ONLY the JSON. No preamble, no markdown backticks."""
+
+
+def get_system_prompt() -> str:
+    """Build the final system prompt by injecting current guidelines."""
+    guidelines = load_guidelines()
+    if guidelines:
+        return BASE_SYSTEM_PROMPT.replace("{GUIDELINES}", guidelines)
+    return BASE_SYSTEM_PROMPT.replace("{GUIDELINES}", "No specific guidelines file found — apply general design best practices.")
 
 
 def get_mime_type(filename: str) -> str:
@@ -181,23 +180,28 @@ async def review_file(
 
         uploaded_file = upload_to_gemini(file_bytes, mime_type, file.filename)
 
+        # Build brand context
         brand_context = ""
         if brand_colors:
-            brand_context += f"\nBrand colors to check against: {brand_colors}"
+            brand_context += f"\nBrand colors (ONLY these colors are allowed): {brand_colors}"
         if brand_fonts:
-            brand_context += f"\nBrand fonts to check against: {brand_fonts}"
+            brand_context += f"\nBrand fonts (ONLY these fonts are allowed): {brand_fonts}"
         if not brand_context:
-            brand_context = "\nNo brand guidelines provided — evaluate general design quality and consistency."
+            brand_context = "\nNo brand colors or fonts specified — check general design consistency and quality."
 
         user_prompt = (
-            f"Please review this file for brand QA compliance.{brand_context}\n\n"
-            "Be extremely strict. Flag every spacing, alignment, padding, icon, grammar, and color issue you find. "
-            "List each issue separately. Return your complete findings as JSON only."
+            f"Please review this file for brand and design QA compliance.{brand_context}\n\n"
+            "Apply every guideline from the design guidelines document strictly. "
+            "Flag every issue you find — spacing, alignment, padding, typography, color, icons, composition. "
+            "List each issue separately. "
+            "Return your complete findings as JSON only."
         )
+
+        system_prompt = get_system_prompt()
 
         model = genai.GenerativeModel(
             model_name=model_name,
-            system_instruction=SYSTEM_PROMPT,
+            system_instruction=system_prompt,
         )
         response = model.generate_content([uploaded_file, user_prompt])
 
@@ -226,4 +230,4 @@ async def review_file(
 
 @app.get("/health")
 def health():
-    return {"status": "ok", "default_model": DEFAULT_MODEL}
+    return {"status": "ok", "default_model": DEFAULT_MODEL, "guidelines_loaded": bool(load_guidelines())}
