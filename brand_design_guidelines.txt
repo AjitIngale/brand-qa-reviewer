@@ -35,6 +35,13 @@ ALIGNMENT
 - If multiple images or icons are present, they must all be aligned to each other on the same axis (top, center, or bottom). Flag any icon or image that breaks alignment with others.
 
 
+TEXT GROUP SPACING (PROXIMITY RULE)
+------------------------------------
+- A subtitle or body text must be placed closer to its own title or header than to any other title or paragraph above or below it. The gap between a title and its own body text must always be smaller than the gap between two separate text groups.
+- If two text groups are present (e.g. Group 1: Title + Body, Group 2: Title + Body), the spacing BETWEEN the two groups must be noticeably larger than the spacing WITHIN each group. Flag any slide where this hierarchy of spacing is not respected — i.e. where body text appears equally distant from its own title and from the next title, making grouping unclear.
+- This proximity principle must be consistent across all slides and frames. Flag any inconsistency.
+
+
 HEADER & FOOTER
 ---------------
 - There must be a consistent header style across all slides or frames. Flag any slide where header is missing or differs in style, position, or size from others.
@@ -67,6 +74,7 @@ BULLET POINTS
 - All bullet points throughout the file must use the same bullet style — same shape, size, and color. Flag any bullet that differs.
 - The spacing between the bullet point symbol and its text must be equal for all bullet points. Flag any inconsistency.
 - Line spacing between bullet items must be consistent throughout. Flag any uneven spacing between items.
+- The bullet symbol or number must be vertically aligned either to the TOP of its text line OR to the MIDDLE of its text — but this must be consistent for ALL bullet points in the file. Flag any bullet where the symbol floats below the text, or where some bullets are top-aligned and others are center-aligned.
 
 
 COMPOSITION & BALANCE
