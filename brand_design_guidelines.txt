@@ -1,0 +1,76 @@
+BRAND DESIGN QUALITY GUIDELINES
+================================
+These rules apply to ALL files — PDFs, slides, images, and videos.
+Flag every violation found. Do not skip minor issues.
+
+
+TYPOGRAPHY & FONTS
+------------------
+- Only the specified brand fonts must be used. Flag any element using a different font.
+- Header and title text must be visually more prominent than body text — either larger font size OR bold weight OR both. Flag any title or header that does not stand out from body text.
+- All titles across the file must have the same font size and style. Flag any title that differs from others.
+- All body text across the file must have the same font size and style. Flag any body text that differs from others.
+- There must be no extra letter spacing (tracking) or word spacing applied to any text. Flag any text that appears stretched or has unusual gaps between letters or words.
+
+
+SPELLING & CAPITALISATION
+--------------------------
+- Check every word for spelling mistakes. Flag each spelling error separately with the exact incorrect word.
+- Capitalisation must be consistent throughout. If titles use Title Case, all titles must use Title Case. If sentence case is used, all similar elements must use sentence case. Flag any inconsistency.
+- Product names and brand names must be spelled correctly and consistently on every slide or frame.
+
+
+COLOR USAGE
+-----------
+- Only brand colors specified by the user must be used. Flag every element that uses a color outside the brand palette.
+- Color contrast must be sufficient — text and subjects must be clearly visible against their background. Flag any combination where text or content is hard to read due to low contrast.
+- The same color must not be used for both background and foreground text. Flag any such occurrence.
+
+
+ALIGNMENT
+---------
+- Titles and subtitles must be aligned to each other — both left-aligned OR both center-aligned. Flag any case where title and subtitle use different alignment.
+- Identify textual groups (e.g. title + body, label + description). Within each group, all elements must be aligned to the same axis. Flag any group where alignment is inconsistent.
+- Spacing between textual groups must be even and consistent across the file. Flag uneven spacing between groups.
+- If multiple images or icons are present, they must all be aligned to each other on the same axis (top, center, or bottom). Flag any icon or image that breaks alignment with others.
+
+
+HEADER & FOOTER
+---------------
+- There must be a consistent header style across all slides or frames. Flag any slide where header is missing or differs in style, position, or size from others.
+- There must be a consistent footer style across all slides or frames. Flag any slide where footer is missing or differs from others.
+
+
+ICONS
+-----
+- All icons must use the same style — either all line icons, OR all filled icons, OR all color icons. Mixed styles are not allowed. Flag any icon that breaks the established style.
+- If line icons are used, all line icons must have the same stroke thickness. Flag any icon with a different line thickness.
+- All icons must be the same size. Flag any icon that is larger or smaller than the others.
+- Icons must be clearly visible, sharp, and high quality. Flag any blurry or pixelated icon.
+
+
+IMAGES & SCREENSHOTS
+--------------------
+- All images, icons, and screenshots must be high quality and clearly visible. Flag any blurry, pixelated, stretched, or low-resolution asset.
+- All images or boxes must consistently use either rounded corners OR sharp corners — never both mixed on the same slide or frame. Flag any inconsistency.
+
+
+BOXES & CONTAINERS
+------------------
+- Internal spacing inside all boxes and containers must be equal on all four sides. Flag any box where padding is uneven — e.g. more space on one side than the other.
+- All similar boxes on the same slide must have the same size and dimensions. Flag any size inconsistency.
+- If multiple boxes are present, spacing between them must be equal. Flag uneven gaps between boxes.
+
+
+BULLET POINTS
+-------------
+- All bullet points throughout the file must use the same bullet style — same shape, size, and color. Flag any bullet that differs.
+- The spacing between the bullet point symbol and its text must be equal for all bullet points. Flag any inconsistency.
+- Line spacing between bullet items must be consistent throughout. Flag any uneven spacing between items.
+
+
+COMPOSITION & BALANCE
+----------------------
+- The overall composition of each slide or frame must be visually balanced. Flag any slide where content is heavily skewed to one side leaving large empty space.
+- No single blank area should occupy more than 30% of the total frame area. Flag any slide with excessive blank space.
+- Content must feel intentionally distributed, not randomly placed. Flag any element that appears out of place or orphaned.
