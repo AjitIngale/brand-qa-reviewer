@@ -9,7 +9,6 @@ import google.generativeai as genai
 
 app = FastAPI(title="Brand QA Reviewer API")
 
-# CORS — allow all origins including local file:// access
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -19,7 +18,6 @@ app.add_middleware(
     expose_headers=["*"],
 )
 
-# Handle preflight OPTIONS requests explicitly
 @app.options("/{rest_of_path:path}")
 async def preflight_handler(rest_of_path: str, request: Request):
     return JSONResponse(
@@ -34,20 +32,26 @@ async def preflight_handler(rest_of_path: str, request: Request):
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
 genai.configure(api_key=GEMINI_API_KEY)
 
+# Allowed models — frontend can select any of these
+ALLOWED_MODELS = {
+    "gemini-2.0-flash",
+    "gemini-1.5-flash",
+    "gemini-1.5-pro",
+    "gemini-2.5-pro-exp-03-25",
+}
+DEFAULT_MODEL = "gemini-2.0-flash"
+
 SUPPORTED_MIME_TYPES = {
-    # Video
     ".mp4":  "video/mp4",
     ".mov":  "video/quicktime",
     ".avi":  "video/x-msvideo",
     ".mkv":  "video/x-matroska",
     ".webm": "video/webm",
-    # Images
     ".jpg":  "image/jpeg",
     ".jpeg": "image/jpeg",
     ".png":  "image/png",
     ".gif":  "image/gif",
     ".webp": "image/webp",
-    # Documents
     ".pdf":  "application/pdf",
 }
 
@@ -91,12 +95,12 @@ Check these categories for every file:
 - Color usage (does it match brand colors?)
 - Typography (does it match brand fonts?)
 - Logo usage (correct placement, size, clear space)
-- Tone & messaging (on-brand voice, grammar, spelling mistakes?)
-- Layout & spacing (clean, professional, proper alignment?)
+- Tone & messaging (on-brand voice?)
+- Layout & spacing (clean, professional?)
 - Visual consistency (consistent style throughout?)
-- Image & screenshot quality (are screenshots blurry, pixelated, or low resolution? Are images crisp and professional?)
+- Image & screenshot quality (are screenshots blurry, pixelated, or low resolution?)
 - Grammar & language (spelling errors, awkward phrasing, inconsistent capitalization?)
-- Screenshot relevance (do screenshots clearly show what they are meant to demonstrate?)
+- Screenshot relevance (do screenshots clearly show what they demonstrate?)
 - For videos: also check motion graphics, transitions, audio branding
 - For slides: review each slide individually in the sections array
 
@@ -109,20 +113,12 @@ def get_mime_type(filename: str) -> str:
 
 
 def upload_to_gemini(file_bytes: bytes, mime_type: str, display_name: str):
-    """Upload file to Gemini File API and wait for ACTIVE state."""
     suffix = "." + mime_type.split("/")[-1].replace("quicktime", "mov")
     with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
         tmp.write(file_bytes)
         tmp_path = tmp.name
-
     try:
-        uploaded = genai.upload_file(
-            path=tmp_path,
-            display_name=display_name,
-            mime_type=mime_type,
-        )
-
-        # Wait for Gemini to finish processing (critical for video)
+        uploaded = genai.upload_file(path=tmp_path, display_name=display_name, mime_type=mime_type)
         waited = 0
         max_wait = 180
         while uploaded.state.name == "PROCESSING":
@@ -131,10 +127,8 @@ def upload_to_gemini(file_bytes: bytes, mime_type: str, display_name: str):
             time.sleep(5)
             waited += 5
             uploaded = genai.get_file(uploaded.name)
-
         if uploaded.state.name != "ACTIVE":
             raise ValueError(f"File ended in unexpected state: {uploaded.state.name}")
-
         return uploaded
     finally:
         os.unlink(tmp_path)
@@ -145,8 +139,13 @@ async def review_file(
     file: UploadFile = File(...),
     brand_colors: str = Form(default=""),
     brand_fonts: str = Form(default=""),
+    model_name: str = Form(default=DEFAULT_MODEL),
 ):
     uploaded_file = None
+    # Validate model
+    if model_name not in ALLOWED_MODELS:
+        model_name = DEFAULT_MODEL
+
     try:
         file_bytes = await file.read()
         mime_type = get_mime_type(file.filename)
@@ -154,38 +153,34 @@ async def review_file(
         if mime_type == "application/octet-stream":
             return JSONResponse(
                 status_code=400,
-                content={"error": f"Unsupported file type: {file.filename}. Supported: PDF, MP4, MOV, JPG, PNG, GIF, WEBP"},
+                content={"error": f"Unsupported file type: {file.filename}"},
             )
 
-        # Upload to Gemini File API
         uploaded_file = upload_to_gemini(file_bytes, mime_type, file.filename)
 
-        # Build brand context for the prompt
         brand_context = ""
         if brand_colors:
             brand_context += f"\nBrand colors to check against: {brand_colors}"
         if brand_fonts:
             brand_context += f"\nBrand fonts to check against: {brand_fonts}"
         if not brand_context:
-            brand_context = "\nNo brand guidelines provided — evaluate general design quality and consistency."
+            brand_context = "\nNo brand guidelines provided — evaluate general design quality."
 
         user_prompt = (
             f"Please review this file for brand QA compliance.{brand_context}\n\n"
             "Return your complete findings as JSON only."
         )
 
-        # Call Gemini
         model = genai.GenerativeModel(
-            model_name="gemini-2.5-flash",
+            model_name=model_name,
             system_instruction=SYSTEM_PROMPT,
         )
         response = model.generate_content([uploaded_file, user_prompt])
 
-        # Parse JSON response
         raw = response.text.strip()
         raw = raw.replace("```json", "").replace("```", "").strip()
         result = json.loads(raw)
-
+        result["model_used"] = model_name
         return JSONResponse(content=result)
 
     except json.JSONDecodeError:
@@ -198,7 +193,6 @@ async def review_file(
     except Exception as e:
         return JSONResponse(status_code=500, content={"error": str(e)})
     finally:
-        # Always clean up the uploaded file from Gemini
         if uploaded_file:
             try:
                 genai.delete_file(uploaded_file.name)
