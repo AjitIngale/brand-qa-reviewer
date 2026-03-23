@@ -173,7 +173,7 @@ async def review_file(
 
         # Call Gemini
         model = genai.GenerativeModel(
-            model_name="Gemini 2.5 Flash-Lite",
+            model_name="Gemini 2.5 Flash",
             system_instruction=SYSTEM_PROMPT,
         )
         response = model.generate_content([uploaded_file, user_prompt])
