@@ -32,14 +32,18 @@ async def preflight_handler(rest_of_path: str, request: Request):
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
 genai.configure(api_key=GEMINI_API_KEY)
 
-# Allowed models — frontend can select any of these
 ALLOWED_MODELS = {
+    "gemini-2.5-flash",
+    "gemini-2.5-pro",
+    "gemini-2.5-flash-lite-preview-06-17",
+    "gemini-3.0-flash-preview",
+    "gemini-3.1-flash-lite-preview",
+    "gemini-3.1-pro-preview",
     "gemini-2.0-flash",
     "gemini-1.5-flash",
     "gemini-1.5-pro",
-    "gemini-2.5-flash",
 }
-DEFAULT_MODEL = "gemini-2.0-flash"
+DEFAULT_MODEL = "gemini-2.5-flash"
 
 SUPPORTED_MIME_TYPES = {
     ".mp4":  "video/mp4",
@@ -78,10 +82,10 @@ Always return your response as valid JSON in this exact structure:
       "score": <number 1-10>,
       "issues": [
         {
-          "type": "<e.g. Branding - Color Consistency>",
+          "type": "<e.g. Layout - Text Overflow>",
           "severity": "<High | Medium | Low>",
-          "description": "<what you found>",
-          "fix": "<how to fix it>"
+          "description": "<exactly what you found and where on the slide>",
+          "fix": "<exactly how to fix it>"
         }
       ],
       "meets": ["<what is good on this section>"]
@@ -91,18 +95,38 @@ Always return your response as valid JSON in this exact structure:
   "top_strengths": ["<strength 1>", "<strength 2>", "<strength 3>"]
 }
 
-Check these categories for every file:
-- Color usage (does it match brand colors?)
-- Typography (does it match brand fonts?)
-- Logo usage (correct placement, size, clear space)
-- Tone & messaging (on-brand voice?)
-- Layout & spacing (clean, professional?)
-- Visual consistency (consistent style throughout?)
-- Image & screenshot quality (are screenshots blurry, pixelated, or low resolution?)
-- Grammar & language (spelling errors, awkward phrasing, inconsistent capitalization?)
-- Screenshot relevance (do screenshots clearly show what they demonstrate?)
-- For videos: also check motion graphics, transitions, audio branding
-- For slides: review each slide individually in the sections array
+Review every file with STRICT attention to detail using universal design principles. Do NOT skip minor issues.
+
+BRANDING:
+- Color usage: check every element — background, text, icons, borders, highlights, buttons. Flag any color not matching brand colors exactly.
+- Typography: check titles, subtitles, body text, captions separately. Are brand fonts used consistently throughout?
+- Logo: correct placement, size, clear space, not distorted?
+
+LAYOUT & SPACING — apply these universal design principles strictly:
+- Internal padding: does every box, card, or container have equal and sufficient padding on all four sides? Flag any box where text or content is too close to or touching the edges.
+- Spacing consistency: are the gaps between repeated elements (cards, rows, columns, bullets, icons) equal and consistent? Flag any uneven gaps.
+- Alignment consistency: are all similar elements (titles, subtitles, body text, images, icons) aligned on the same axis throughout? Flag any element that breaks the alignment grid.
+- Element size consistency: if multiple similar elements exist (cards, boxes, buttons, icons), are they all the same size? Flag any size inconsistency.
+- Visual hierarchy: is there a clear and consistent size/weight difference between titles, subtitles, and body text?
+- White space: is white space used consistently and intentionally? Flag crowded areas or inconsistent breathing room.
+- Grid adherence: do all elements snap to a consistent underlying grid? Flag anything that appears misaligned or floating.
+
+VISUAL ELEMENTS:
+- Icon consistency: are all icons the same style (all outline OR all filled, never mixed)? Same size? Same visual weight?
+- Icon clarity: are icons sharp and clear, not blurry or pixelated?
+- Image quality: flag any blurry, pixelated, stretched, or low-resolution images or screenshots.
+- Visual consistency: are illustrations, diagrams and graphic elements consistent in style throughout?
+
+CONTENT QUALITY:
+- Grammar: check every sentence for spelling errors, typos, missing words, wrong punctuation.
+- Language: awkward phrasing, inconsistent capitalization, inconsistent terminology?
+- Product and brand names: spelled correctly and consistently throughout?
+- Tone: consistent and appropriate for the audience?
+
+For slides: review EVERY slide individually in the sections array.
+For each issue: state exactly WHICH element is affected, WHERE it is on the slide, and WHY it violates a design principle.
+List every issue separately — do not bundle multiple issues into one.
+Be strict — flag everything, even minor inconsistencies.
 
 Return ONLY the JSON. No preamble, no markdown backticks."""
 
@@ -142,7 +166,6 @@ async def review_file(
     model_name: str = Form(default=DEFAULT_MODEL),
 ):
     uploaded_file = None
-    # Validate model
     if model_name not in ALLOWED_MODELS:
         model_name = DEFAULT_MODEL
 
@@ -164,11 +187,12 @@ async def review_file(
         if brand_fonts:
             brand_context += f"\nBrand fonts to check against: {brand_fonts}"
         if not brand_context:
-            brand_context = "\nNo brand guidelines provided — evaluate general design quality."
+            brand_context = "\nNo brand guidelines provided — evaluate general design quality and consistency."
 
         user_prompt = (
             f"Please review this file for brand QA compliance.{brand_context}\n\n"
-            "Return your complete findings as JSON only."
+            "Be extremely strict. Flag every spacing, alignment, padding, icon, grammar, and color issue you find. "
+            "List each issue separately. Return your complete findings as JSON only."
         )
 
         model = genai.GenerativeModel(
@@ -202,4 +226,4 @@ async def review_file(
 
 @app.get("/health")
 def health():
-    return {"status": "ok", "model": "gemini-2.0-flash"}
+    return {"status": "ok", "default_model": DEFAULT_MODEL}
