@@ -91,9 +91,12 @@ Check these categories for every file:
 - Color usage (does it match brand colors?)
 - Typography (does it match brand fonts?)
 - Logo usage (correct placement, size, clear space)
-- Tone & messaging (on-brand voice?)
-- Layout & spacing (clean, professional?)
+- Tone & messaging (on-brand voice, grammar, spelling mistakes?)
+- Layout & spacing (clean, professional, proper alignment?)
 - Visual consistency (consistent style throughout?)
+- Image & screenshot quality (are screenshots blurry, pixelated, or low resolution? Are images crisp and professional?)
+- Grammar & language (spelling errors, awkward phrasing, inconsistent capitalization?)
+- Screenshot relevance (do screenshots clearly show what they are meant to demonstrate?)
 - For videos: also check motion graphics, transitions, audio branding
 - For slides: review each slide individually in the sections array
 
