@@ -2,35 +2,41 @@ import os
 import time
 import json
 import tempfile
-from fastapi import FastAPI, UploadFile, File, Form, Request
+from fastapi import FastAPI, UploadFile, File, Form, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from starlette.middleware.base import BaseHTTPMiddleware
 import google.generativeai as genai
 import requests as req
 
+# ── Bulletproof CORS middleware ──────────────────────────────────────────────
+class CORSMiddlewareForce(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        if request.method == "OPTIONS":
+            response = Response(status_code=200)
+        else:
+            response = await call_next(request)
+        response.headers["Access-Control-Allow-Origin"] = "*"
+        response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS, PATCH"
+        response.headers["Access-Control-Allow-Headers"] = "*"
+        response.headers["Access-Control-Expose-Headers"] = "*"
+        response.headers["Access-Control-Max-Age"] = "3600"
+        return response
+
 app = FastAPI(title="Brand QA Reviewer API")
 
+# Add force CORS first (outermost)
+app.add_middleware(CORSMiddlewareForce)
+
+# Also add standard CORS middleware as backup
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
     allow_credentials=False,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+    allow_methods=["*"],
     allow_headers=["*"],
     expose_headers=["*"],
-    max_age=3600,
 )
-
-@app.options("/{rest_of_path:path}")
-async def preflight_handler(rest_of_path: str, request: Request):
-    return JSONResponse(
-        content={},
-        headers={
-            "Access-Control-Allow-Origin": "*",
-            "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS, PATCH",
-            "Access-Control-Allow-Headers": "*",
-            "Access-Control-Max-Age": "3600",
-        },
-    )
 
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "https://gulufaauvfgijhxkxwwa.supabase.co")
@@ -182,18 +188,19 @@ async def review_file(
 
     # Check user credits if user_id provided
     if user_id and SUPABASE_SERVICE_KEY:
-        profile_res = req.get(
-            f"{SUPABASE_URL}/rest/v1/profiles?user_id=eq.{user_id}&select=*",
-            headers=get_supabase_headers()
-        )
-        profiles = profile_res.json()
-        if profiles:
-            profile = profiles[0]
-            if profile["reviews_used"] >= profile["reviews_limit"]:
+        try:
+            profile_res = req.get(
+                f"{SUPABASE_URL}/rest/v1/profiles?user_id=eq.{user_id}&select=*",
+                headers=get_supabase_headers()
+            )
+            profiles = profile_res.json()
+            if profiles and profiles[0]["reviews_used"] >= profiles[0]["reviews_limit"]:
                 return JSONResponse(
                     status_code=403,
                     content={"error": "Monthly review limit reached. Please upgrade your plan."}
                 )
+        except Exception:
+            pass  # Don't block review if Supabase check fails
 
     try:
         file_bytes = await file.read()
