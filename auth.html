@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QA Buddy — Sign in</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    :root {
+      --orange: #F57C28; --orange-light: #FEF0E6; --orange-dark: #D4621A;
+      --dark: #1E1E1E; --gray: #6B6B6B; --gray-light: #F5F5F4;
+      --border: #E8E6E1; --white: #FFFFFF;
+      --green: #2D7D52; --green-bg: #EBF5EE;
+      --red: #B91C1C; --red-bg: #FEE2E2;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Poppins', sans-serif; background: var(--gray-light); min-height: 100vh; display: flex; }
+    .left { width: 420px; flex-shrink: 0; background: var(--dark); display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px; position: relative; overflow: hidden; }
+    .left::before { content: ''; position: absolute; top: -80px; left: -80px; width: 300px; height: 300px; background: radial-gradient(circle, rgba(245,124,40,0.2) 0%, transparent 70%); border-radius: 50%; }
+    .left::after { content: ''; position: absolute; bottom: -80px; right: -80px; width: 250px; height: 250px; background: radial-gradient(circle, rgba(245,124,40,0.15) 0%, transparent 70%); border-radius: 50%; }
+    .left-content { position: relative; z-index: 1; text-align: center; }
+    .left-logo { display: flex; align-items: center; gap: 10px; justify-content: center; margin-bottom: 32px; text-decoration: none; }
+    .left-logo-img { height: 32px; object-fit: contain; }
+    .left-mascot { width: 180px; margin: 0 auto 28px; animation: float 4s ease-in-out infinite; }
+    .left-mascot img { width: 100%; filter: drop-shadow(0 16px 32px rgba(245,124,40,0.3)); }
+    @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
+    .left-title { font-size: 22px; font-weight: 700; color: white; margin-bottom: 10px; line-height: 1.3; }
+    .left-title em { font-style: normal; color: var(--orange); }
+    .left-sub { font-size: 13px; color: rgba(255,255,255,0.5); line-height: 1.6; }
+    .left-perks { display: flex; flex-direction: column; gap: 10px; margin-top: 28px; }
+    .perk { display: flex; align-items: center; gap: 10px; }
+    .perk-icon { width: 24px; height: 24px; background: rgba(245,124,40,0.2); border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 11px; flex-shrink: 0; }
+    .perk-text { font-size: 13px; color: rgba(255,255,255,0.7); text-align: left; }
+    .right { flex: 1; display: flex; align-items: center; justify-content: center; padding: 40px 24px; }
+    .auth-card { background: white; border-radius: 20px; padding: 40px; width: 100%; max-width: 420px; box-shadow: 0 4px 24px rgba(0,0,0,0.06); border: 1px solid var(--border); }
+    .auth-toggle { display: flex; background: var(--gray-light); border-radius: 10px; padding: 4px; margin-bottom: 28px; }
+    .toggle-btn { flex: 1; padding: 9px; border: none; background: none; border-radius: 7px; font-size: 14px; font-weight: 500; color: var(--gray); cursor: pointer; font-family: 'Poppins', sans-serif; transition: all 0.2s; }
+    .toggle-btn.active { background: white; color: var(--dark); box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
+    .auth-title { font-size: 20px; font-weight: 700; color: var(--dark); margin-bottom: 4px; }
+    .auth-sub { font-size: 13px; color: var(--gray); margin-bottom: 24px; }
+    .field { margin-bottom: 16px; }
+    .field label { display: block; font-size: 12px; font-weight: 500; color: var(--dark); margin-bottom: 6px; }
+    .field input { width: 100%; padding: 11px 14px; border: 1.5px solid var(--border); border-radius: 9px; font-size: 14px; font-family: 'Poppins', sans-serif; color: var(--dark); outline: none; transition: border-color 0.2s; }
+    .field input:focus { border-color: var(--orange); }
+    .field input::placeholder { color: #C0BDB7; }
+    .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .forgot { font-size: 12px; color: var(--orange); text-decoration: none; float: right; margin-top: -10px; margin-bottom: 16px; display: block; cursor: pointer; }
+    .submit-btn { width: 100%; padding: 13px; background: var(--orange); border: none; border-radius: 9px; font-size: 14px; font-weight: 600; color: white; cursor: pointer; font-family: 'Poppins', sans-serif; transition: all 0.2s; margin-top: 4px; display: flex; align-items: center; justify-content: center; gap: 8px; }
+    .submit-btn:hover { background: var(--orange-dark); }
+    .submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .spinner { width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.3); border-top-color: white; border-radius: 50%; animation: spin 0.7s linear infinite; display: none; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .alert { padding: 11px 14px; border-radius: 9px; font-size: 13px; margin-bottom: 16px; display: none; }
+    .alert.error { background: var(--red-bg); color: var(--red); border: 1px solid #FECACA; }
+    .alert.success { background: var(--green-bg); color: var(--green); border: 1px solid #A7D7B8; }
+    .alert.show { display: block; }
+    .terms { font-size: 11px; color: #C0BDB7; text-align: center; margin-top: 16px; line-height: 1.5; }
+    .terms a { color: var(--orange); text-decoration: none; }
+    .switch-text { text-align: center; font-size: 13px; color: var(--gray); margin-top: 20px; }
+    .switch-text a { color: var(--orange); font-weight: 500; text-decoration: none; cursor: pointer; }
+    .panel { display: none; }
+    .panel.active { display: block; }
+    @media (max-width: 768px) { .left { display: none; } .right { background: white; } .auth-card { box-shadow: none; border: none; padding: 24px 20px; } }
+  </style>
+</head>
+<body>
+<div class="left">
+  <div class="left-content">
+    <a href="home.html" class="left-logo">
+      <img src="Logo.png" alt="QA Buddy" class="left-logo-img" onerror="this.style.display='none'"/>
+    </a>
+    <div class="left-mascot">
+      <img src="mascot.png" alt="QA Buddy" onerror="this.style.fontSize='80px';this.textContent='🤖'"/>
+    </div>
+    <div class="left-title">AI-powered <em>Brand QA</em><br>in seconds</div>
+    <div class="left-sub">Upload any file and get instant, detailed brand compliance feedback.</div>
+    <div class="left-perks">
+      <div class="perk"><div class="perk-icon">🎬</div><div class="perk-text">Reviews PDFs, videos and images</div></div>
+      <div class="perk"><div class="perk-icon">⚡</div><div class="perk-text">Results in seconds, not hours</div></div>
+      <div class="perk"><div class="perk-icon">📥</div><div class="perk-text">Download professional PDF reports</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="right">
+  <div class="auth-card">
+    <div class="auth-toggle">
+      <button class="toggle-btn active" id="signin-tab" onclick="showPanel('signin')">Sign in</button>
+      <button class="toggle-btn" id="signup-tab" onclick="showPanel('signup')">Create account</button>
+    </div>
+
+    <div class="panel active" id="signin-panel">
+      <div class="auth-title">Welcome back</div>
+      <div class="auth-sub">Sign in to your QA Buddy account</div>
+      <div class="alert error" id="signin-error"></div>
+      <div class="alert success" id="signin-success"></div>
+      <div class="field"><label>Email address</label><input type="email" id="signin-email" placeholder="you@company.com"/></div>
+      <div class="field"><label>Password</label><input type="password" id="signin-password" placeholder="Enter your password" onkeydown="if(event.key==='Enter') signIn()"/></div>
+      <a class="forgot" onclick="forgotPassword()">Forgot password?</a>
+      <button class="submit-btn" id="signin-btn" onclick="signIn()">
+        <span>Sign in</span><div class="spinner" id="signin-spinner"></div>
+      </button>
+      <div class="switch-text">Don't have an account? <a onclick="showPanel('signup')">Create one free</a></div>
+    </div>
+
+    <div class="panel" id="signup-panel">
+      <div class="auth-title">Create your account</div>
+      <div class="auth-sub">Start reviewing designs for free — no card needed</div>
+      <div class="alert error" id="signup-error"></div>
+      <div class="alert success" id="signup-success"></div>
+      <div class="field-row">
+        <div class="field"><label>First name</label><input type="text" id="signup-firstname" placeholder="Ajit"/></div>
+        <div class="field"><label>Last name</label><input type="text" id="signup-lastname" placeholder="Ingale"/></div>
+      </div>
+      <div class="field"><label>Email address</label><input type="email" id="signup-email" placeholder="you@company.com"/></div>
+      <div class="field"><label>Password</label><input type="password" id="signup-password" placeholder="Min. 8 characters" onkeydown="if(event.key==='Enter') signUp()"/></div>
+      <button class="submit-btn" id="signup-btn" onclick="signUp()">
+        <span>Create free account</span><div class="spinner" id="signup-spinner"></div>
+      </button>
+      <div class="terms">By creating an account you agree to our <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a></div>
+      <div class="switch-text">Already have an account? <a onclick="showPanel('signin')">Sign in</a></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const SUPABASE_URL = 'https://gulufaauvfgijhxkxwwa.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd1bHVmYWF1dmZnaWpoeGt4d3dhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUzMDg5OTUsImV4cCI6MjA5MDg4NDk5NX0.V_zO1ftyDRzFdCP3OVOU0hUrqXr5VvvUdBhaGLBVYKQ';
+  const { createClient } = supabase;
+  const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  sb.auth.getSession().then(({ data }) => {
+    if (data.session) window.location.href = 'app.html';
+  });
+
+  function showPanel(panel) {
+    document.getElementById('signin-panel').classList.toggle('active', panel === 'signin');
+    document.getElementById('signup-panel').classList.toggle('active', panel === 'signup');
+    document.getElementById('signin-tab').classList.toggle('active', panel === 'signin');
+    document.getElementById('signup-tab').classList.toggle('active', panel === 'signup');
+  }
+  function setLoading(panel, loading) {
+    document.getElementById(panel+'-btn').disabled = loading;
+    document.getElementById(panel+'-spinner').style.display = loading ? 'block' : 'none';
+  }
+  function showAlert(id, msg, type) { const el=document.getElementById(id); el.textContent=msg; el.className=`alert ${type} show`; }
+  function hideAlert(id) { document.getElementById(id).classList.remove('show'); }
+
+  async function signIn() {
+    const email = document.getElementById('signin-email').value.trim();
+    const password = document.getElementById('signin-password').value;
+    if (!email || !password) { showAlert('signin-error','Please enter your email and password.','error'); return; }
+    hideAlert('signin-error'); setLoading('signin', true);
+    const { error } = await sb.auth.signInWithPassword({ email, password });
+    setLoading('signin', false);
+    if (error) { showAlert('signin-error', error.message, 'error'); return; }
+    window.location.href = 'app.html';
+  }
+
+  async function signUp() {
+    const first = document.getElementById('signup-firstname').value.trim();
+    const last = document.getElementById('signup-lastname').value.trim();
+    const email = document.getElementById('signup-email').value.trim();
+    const password = document.getElementById('signup-password').value;
+    if (!first || !email || !password) { showAlert('signup-error','Please fill in all required fields.','error'); return; }
+    if (password.length < 8) { showAlert('signup-error','Password must be at least 8 characters.','error'); return; }
+    hideAlert('signup-error'); setLoading('signup', true);
+    const { data, error } = await sb.auth.signUp({ email, password, options: { data: { full_name: `${first} ${last}` } } });
+    if (error) { setLoading('signup', false); showAlert('signup-error', error.message, 'error'); return; }
+    if (data.user) {
+      const resetDate = new Date(); resetDate.setMonth(resetDate.getMonth()+1); resetDate.setDate(1);
+      await sb.from('profiles').insert({ user_id: data.user.id, email, full_name: `${first} ${last}`, plan: 'free', reviews_used: 0, reviews_limit: 10, reset_date: resetDate.toISOString().split('T')[0] });
+    }
+    setLoading('signup', false);
+    showAlert('signup-success','Account created! Check your email to confirm, then sign in.','success');
+  }
+
+  async function forgotPassword() {
+    const email = document.getElementById('signin-email').value.trim();
+    if (!email) { showAlert('signin-error','Please enter your email address first.','error'); return; }
+    const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin + '/auth.html' });
+    if (error) { showAlert('signin-error', error.message, 'error'); return; }
+    showAlert('signin-success','Password reset email sent! Check your inbox.','success');
+  }
+
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('signup') === '1') showPanel('signup');
+</script>
+</body>
+</html>

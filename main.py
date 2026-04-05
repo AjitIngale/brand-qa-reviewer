@@ -6,6 +6,7 @@ from fastapi import FastAPI, UploadFile, File, Form, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 import google.generativeai as genai
+import requests as req
 
 app = FastAPI(title="Brand QA Reviewer API")
 
@@ -30,6 +31,9 @@ async def preflight_handler(rest_of_path: str, request: Request):
     )
 
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
+SUPABASE_URL = os.environ.get("SUPABASE_URL", "https://gulufaauvfgijhxkxwwa.supabase.co")
+SUPABASE_SERVICE_KEY = os.environ.get("SUPABASE_SERVICE_KEY", "")
+
 genai.configure(api_key=GEMINI_API_KEY)
 
 ALLOWED_MODELS = {
@@ -59,16 +63,14 @@ SUPPORTED_MIME_TYPES = {
     ".pdf":  "application/pdf",
 }
 
-# Load design guidelines from file
 GUIDELINES_PATH = os.path.join(os.path.dirname(__file__), "brand_design_guidelines.txt")
+
 def load_guidelines() -> str:
     try:
         with open(GUIDELINES_PATH, "r") as f:
             return f.read()
     except Exception:
         return ""
-
-DESIGN_GUIDELINES = load_guidelines()
 
 BASE_SYSTEM_PROMPT = """You are a Brand QA and Content Review Expert with deep knowledge of visual design principles.
 
@@ -123,11 +125,18 @@ Return ONLY the JSON. No preamble, no markdown backticks."""
 
 
 def get_system_prompt() -> str:
-    """Build the final system prompt by injecting current guidelines."""
     guidelines = load_guidelines()
     if guidelines:
         return BASE_SYSTEM_PROMPT.replace("{GUIDELINES}", guidelines)
     return BASE_SYSTEM_PROMPT.replace("{GUIDELINES}", "No specific guidelines file found — apply general design best practices.")
+
+
+def get_supabase_headers():
+    return {
+        "apikey": SUPABASE_SERVICE_KEY,
+        "Authorization": f"Bearer {SUPABASE_SERVICE_KEY}",
+        "Content-Type": "application/json"
+    }
 
 
 def get_mime_type(filename: str) -> str:
@@ -163,10 +172,26 @@ async def review_file(
     brand_colors: str = Form(default=""),
     brand_fonts: str = Form(default=""),
     model_name: str = Form(default=DEFAULT_MODEL),
+    user_id: str = Form(default=""),
 ):
     uploaded_file = None
     if model_name not in ALLOWED_MODELS:
         model_name = DEFAULT_MODEL
+
+    # Check user credits if user_id provided
+    if user_id and SUPABASE_SERVICE_KEY:
+        profile_res = req.get(
+            f"{SUPABASE_URL}/rest/v1/profiles?user_id=eq.{user_id}&select=*",
+            headers=get_supabase_headers()
+        )
+        profiles = profile_res.json()
+        if profiles:
+            profile = profiles[0]
+            if profile["reviews_used"] >= profile["reviews_limit"]:
+                return JSONResponse(
+                    status_code=403,
+                    content={"error": "Monthly review limit reached. Please upgrade your plan."}
+                )
 
     try:
         file_bytes = await file.read()
@@ -180,7 +205,6 @@ async def review_file(
 
         uploaded_file = upload_to_gemini(file_bytes, mime_type, file.filename)
 
-        # Build brand context
         brand_context = ""
         if brand_colors:
             brand_context += f"\nBrand colors (ONLY these colors are allowed): {brand_colors}"
@@ -191,17 +215,13 @@ async def review_file(
 
         user_prompt = (
             f"Please review this file for brand and design QA compliance.{brand_context}\n\n"
-            "Apply every guideline from the design guidelines document strictly. "
-            "Flag every issue you find — spacing, alignment, padding, typography, color, icons, composition. "
-            "List each issue separately. "
+            "Apply every guideline strictly. Flag every issue. List each issue separately. "
             "Return your complete findings as JSON only."
         )
 
-        system_prompt = get_system_prompt()
-
         model = genai.GenerativeModel(
             model_name=model_name,
-            system_instruction=system_prompt,
+            system_instruction=get_system_prompt(),
         )
         response = model.generate_content([uploaded_file, user_prompt])
 
@@ -230,4 +250,9 @@ async def review_file(
 
 @app.get("/health")
 def health():
-    return {"status": "ok", "default_model": DEFAULT_MODEL, "guidelines_loaded": bool(load_guidelines())}
+    return {
+        "status": "ok",
+        "default_model": DEFAULT_MODEL,
+        "guidelines_loaded": bool(load_guidelines()),
+        "supabase_connected": bool(SUPABASE_SERVICE_KEY)
+    }

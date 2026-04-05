@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QA Buddy — Account Settings</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    :root{--orange:#F57C28;--orange-light:#FEF0E6;--orange-dark:#D4621A;--dark:#1E1E1E;--gray:#6B6B6B;--gray-light:#F5F5F4;--border:#E8E6E1;--white:#FFFFFF;--green:#2D7D52;--green-bg:#EBF5EE;--red:#B91C1C;--red-bg:#FEE2E2;}
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:'Poppins',sans-serif;background:var(--gray-light);color:var(--dark);min-height:100vh;}
+    .app{display:grid;grid-template-columns:260px 1fr;min-height:100vh;}
+    .sidebar{background:var(--dark);padding:20px 14px;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;}
+    .sidebar-logo{display:flex;align-items:center;padding:4px 8px;margin-bottom:8px;text-decoration:none;}
+    .sidebar-logo img{height:28px;object-fit:contain;}
+    .sidebar-mascot{text-align:center;padding:12px 8px 8px;margin-bottom:4px;}
+    .sidebar-mascot img{width:70px;filter:drop-shadow(0 4px 12px rgba(245,124,40,0.3));}
+    .mascot-bubble{background:rgba(245,124,40,0.12);border:1px solid rgba(245,124,40,0.2);border-radius:10px;padding:7px 10px;font-size:11px;color:rgba(255,255,255,0.6);text-align:center;margin-top:6px;}
+    .nav-section-label{font-size:10px;font-weight:600;color:rgba(255,255,255,0.22);text-transform:uppercase;letter-spacing:0.08em;padding:12px 10px 5px;}
+    .nav-item{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:8px;font-size:13px;color:rgba(255,255,255,0.5);cursor:pointer;transition:all 0.15s;text-decoration:none;border:none;background:none;width:100%;font-family:'Poppins',sans-serif;}
+    .nav-item:hover{background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.85);}
+    .nav-item.active{background:rgba(245,124,40,0.15);color:var(--orange);}
+    .nav-item svg{width:15px;height:15px;flex-shrink:0;}
+    .sidebar-footer{margin-top:auto;padding-top:14px;border-top:1px solid rgba(255,255,255,0.07);}
+    .credits-card{background:rgba(245,124,40,0.1);border:1px solid rgba(245,124,40,0.2);border-radius:10px;padding:11px 12px;margin-bottom:10px;}
+    .credits-top{display:flex;justify-content:space-between;margin-bottom:5px;}
+    .credits-label{font-size:11px;color:rgba(255,255,255,0.45);}
+    .credits-count{font-size:12px;font-weight:700;color:var(--orange);font-family:'DM Mono',monospace;}
+    .credits-bar{height:3px;background:rgba(255,255,255,0.08);border-radius:2px;}
+    .credits-fill{height:100%;background:var(--orange);border-radius:2px;}
+    .credits-sub{font-size:10px;color:rgba(255,255,255,0.25);margin-top:4px;}
+    .user-row{display:flex;align-items:center;gap:9px;padding:7px 8px;border-radius:8px;}
+    .user-avatar{width:32px;height:32px;background:var(--orange);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:white;flex-shrink:0;}
+    .user-info{flex:1;overflow:hidden;}
+    .user-name{font-size:12px;font-weight:600;color:rgba(255,255,255,0.85);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .user-plan{font-size:10px;color:var(--orange);}
+    .signout-btn{display:flex;align-items:center;gap:7px;padding:7px 8px;border-radius:8px;font-size:12px;color:rgba(255,255,255,0.3);cursor:pointer;border:none;background:none;width:100%;font-family:'Poppins',sans-serif;transition:all 0.15s;margin-top:2px;}
+    .signout-btn:hover{color:rgba(255,100,100,0.8);background:rgba(185,28,28,0.08);}
+    .main{padding:32px;}
+    .page-title{font-size:21px;font-weight:700;letter-spacing:-0.4px;margin-bottom:4px;}
+    .page-sub{font-size:13px;color:var(--gray);margin-bottom:28px;}
+    .settings-grid{display:grid;grid-template-columns:200px 1fr;gap:24px;}
+    .settings-nav{display:flex;flex-direction:column;gap:2px;}
+    .settings-nav-item{padding:9px 12px;border-radius:8px;font-size:13px;color:var(--gray);cursor:pointer;transition:all 0.15s;border:none;background:none;text-align:left;font-family:'Poppins',sans-serif;width:100%;}
+    .settings-nav-item:hover{background:var(--border);color:var(--dark);}
+    .settings-nav-item.active{background:var(--orange-light);color:var(--orange-dark);font-weight:500;}
+    .settings-card{background:white;border:1px solid var(--border);border-radius:14px;padding:24px;box-shadow:0 1px 3px rgba(0,0,0,0.04);margin-bottom:16px;}
+    .settings-card-title{font-size:14px;font-weight:600;margin-bottom:4px;}
+    .settings-card-sub{font-size:13px;color:var(--gray);margin-bottom:20px;}
+    .form-field{margin-bottom:16px;}
+    .form-field label{display:block;font-size:12px;font-weight:500;color:var(--dark);margin-bottom:6px;}
+    .form-field input{width:100%;padding:10px 14px;border:1.5px solid var(--border);border-radius:9px;font-size:14px;font-family:'Poppins',sans-serif;color:var(--dark);outline:none;transition:border-color 0.2s;}
+    .form-field input:focus{border-color:var(--orange);}
+    .form-field input:disabled{background:var(--gray-light);color:var(--gray);cursor:not-allowed;}
+    .form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+    .save-btn{padding:10px 24px;background:var(--orange);border:none;border-radius:8px;font-size:13px;font-weight:600;color:white;cursor:pointer;font-family:'Poppins',sans-serif;transition:all 0.2s;}
+    .save-btn:hover{background:var(--orange-dark);}
+    .alert{padding:10px 14px;border-radius:8px;font-size:13px;margin-bottom:14px;display:none;}
+    .alert.success{background:var(--green-bg);color:var(--green);border:1px solid #A7D7B8;}
+    .alert.error{background:var(--red-bg);color:var(--red);border:1px solid #FECACA;}
+    .alert.show{display:block;}
+    .plan-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
+    .plan-card{border:1.5px solid var(--border);border-radius:12px;padding:18px;cursor:pointer;transition:all 0.2s;position:relative;}
+    .plan-card:hover{border-color:var(--orange);}
+    .plan-card.current{border-color:var(--orange);background:var(--orange-light);}
+    .plan-badge{position:absolute;top:-10px;right:12px;background:var(--orange);color:white;font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;}
+    .plan-name{font-size:14px;font-weight:700;margin-bottom:4px;}
+    .plan-price{font-size:22px;font-weight:700;color:var(--orange);margin-bottom:2px;font-family:'DM Mono',monospace;}
+    .plan-price span{font-size:13px;font-weight:400;color:var(--gray);}
+    .plan-desc{font-size:12px;color:var(--gray);margin-bottom:12px;}
+    .plan-features{display:flex;flex-direction:column;gap:5px;}
+    .plan-feat{font-size:12px;color:var(--dark);display:flex;align-items:center;gap:5px;}
+    .plan-feat::before{content:'✓';color:var(--green);font-weight:700;font-size:11px;}
+    .danger-btn{padding:10px 24px;background:var(--red-bg);border:1px solid #FECACA;border-radius:8px;font-size:13px;font-weight:500;color:var(--red);cursor:pointer;font-family:'Poppins',sans-serif;}
+    .section-panel{display:none;}
+    .section-panel.active{display:block;}
+  </style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <a href="home.html" class="sidebar-logo"><img src="Logo.png" alt="QA Buddy" onerror="this.style.display='none'"/></a>
+    <div class="sidebar-mascot">
+      <img src="mascot.png" alt="QA Buddy" onerror="this.style.fontSize='48px';this.textContent='🤖'"/>
+      <div class="mascot-bubble">Manage your account!</div>
+    </div>
+    <div class="nav-section-label">Workspace</div>
+    <a href="app.html" class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>New Review</a>
+    <div class="nav-section-label" style="margin-top:6px;">Account</div>
+    <a href="settings.html" class="nav-item active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>Account Settings</a>
+    <div class="sidebar-footer">
+      <div class="credits-card">
+        <div class="credits-top"><span class="credits-label">Reviews left</span><span class="credits-count" id="credits-count">— / —</span></div>
+        <div class="credits-bar"><div class="credits-fill" id="credits-fill" style="width:100%"></div></div>
+        <div class="credits-sub" id="credits-sub">Loading...</div>
+      </div>
+      <div class="user-row"><div class="user-avatar" id="user-avatar">?</div><div class="user-info"><div class="user-name" id="user-name">Loading...</div><div class="user-plan" id="user-plan">Free plan</div></div></div>
+      <button class="signout-btn" onclick="signOut()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg>Sign out</button>
+    </div>
+  </aside>
+  <main class="main">
+    <div class="page-title">Account Settings</div>
+    <div class="page-sub">Manage your profile, subscription and security</div>
+    <div class="settings-grid">
+      <div class="settings-nav">
+        <button class="settings-nav-item active" onclick="showSection('profile')">👤 Profile</button>
+        <button class="settings-nav-item" onclick="showSection('subscription')">💳 Subscription</button>
+        <button class="settings-nav-item" onclick="showSection('security')">🔐 Security</button>
+        <button class="settings-nav-item" onclick="showSection('danger')">⚠️ Danger zone</button>
+      </div>
+      <div>
+        <div class="section-panel active" id="profile-section">
+          <div class="settings-card">
+            <div class="settings-card-title">Profile information</div>
+            <div class="settings-card-sub">Update your name and display info</div>
+            <div class="alert success" id="profile-success"></div>
+            <div class="alert error" id="profile-error"></div>
+            <div class="form-row">
+              <div class="form-field"><label>First name</label><input type="text" id="profile-firstname"/></div>
+              <div class="form-field"><label>Last name</label><input type="text" id="profile-lastname"/></div>
+            </div>
+            <div class="form-field"><label>Email address</label><input type="email" id="profile-email" disabled/></div>
+            <div class="form-field"><label>Current plan</label><input type="text" id="profile-plan" disabled/></div>
+            <button class="save-btn" onclick="saveProfile()">Save changes</button>
+          </div>
+        </div>
+        <div class="section-panel" id="subscription-section">
+          <div class="settings-card">
+            <div class="settings-card-title">Subscription plan</div>
+            <div class="settings-card-sub" id="sub-current-desc">Loading...</div>
+            <div class="plan-grid">
+              <div class="plan-card" id="plan-free"><div class="plan-name">Free</div><div class="plan-price">$0 <span>/mo</span></div><div class="plan-desc">Great for trying QA Buddy</div><div class="plan-features"><div class="plan-feat">10 reviews/month</div><div class="plan-feat">PDF & Image review</div><div class="plan-feat">Basic report</div></div></div>
+              <div class="plan-card" id="plan-pro"><div class="plan-name">Pro</div><div class="plan-price">$29 <span>/mo</span></div><div class="plan-desc">For individuals & freelancers</div><div class="plan-features"><div class="plan-feat">100 reviews/month</div><div class="plan-feat">Video + PDF + Image</div><div class="plan-feat">PDF report export</div><div class="plan-feat">Custom guidelines</div></div></div>
+              <div class="plan-card" id="plan-agency"><div class="plan-name">Agency</div><div class="plan-price">$79 <span>/mo</span></div><div class="plan-desc">For agencies and teams</div><div class="plan-features"><div class="plan-feat">Unlimited reviews</div><div class="plan-feat">5 team members</div><div class="plan-feat">Priority support</div><div class="plan-feat">All file types</div></div></div>
+            </div>
+          </div>
+        </div>
+        <div class="section-panel" id="security-section">
+          <div class="settings-card">
+            <div class="settings-card-title">Change password</div>
+            <div class="settings-card-sub">Choose a strong password to keep your account secure</div>
+            <div class="alert success" id="pw-success"></div>
+            <div class="alert error" id="pw-error"></div>
+            <div class="form-field"><label>New password</label><input type="password" id="new-password" placeholder="Min. 8 characters"/></div>
+            <div class="form-field"><label>Confirm new password</label><input type="password" id="confirm-password" placeholder="Repeat new password"/></div>
+            <button class="save-btn" onclick="changePassword()">Update password</button>
+          </div>
+        </div>
+        <div class="section-panel" id="danger-section">
+          <div class="settings-card">
+            <div class="settings-card-title">Danger zone</div>
+            <div class="settings-card-sub">These actions are irreversible. Please be careful.</div>
+            <div style="background:var(--red-bg);border:1px solid #FECACA;border-radius:10px;padding:16px;display:flex;align-items:center;justify-content:space-between;gap:16px;">
+              <div><div style="font-size:14px;font-weight:600;color:var(--red);">Delete account</div><div style="font-size:12px;color:var(--gray);margin-top:3px;">Permanently delete your account and all data.</div></div>
+              <button class="danger-btn" onclick="deleteAccount()">Delete account</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+<script>
+  const SUPABASE_URL='https://gulufaauvfgijhxkxwwa.supabase.co';
+  const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd1bHVmYWF1dmZnaWpoeGt4d3dhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUzMDg5OTUsImV4cCI6MjA5MDg4NDk5NX0.V_zO1ftyDRzFdCP3OVOU0hUrqXr5VvvUdBhaGLBVYKQ';
+  const{createClient}=supabase;const sb=createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+  let currentUser=null;
+
+  async function init(){
+    const{data:{session}}=await sb.auth.getSession();
+    if(!session){window.location.href='auth.html';return;}
+    currentUser=session.user;
+    const{data}=await sb.from('profiles').select('*').eq('user_id',currentUser.id).single();
+    if(data){
+      const rem=Math.max(0,data.reviews_limit-data.reviews_used);
+      document.getElementById('credits-count').textContent=`${rem} / ${data.reviews_limit}`;
+      document.getElementById('credits-fill').style.width=`${(rem/data.reviews_limit)*100}%`;
+      document.getElementById('credits-sub').textContent=`${data.plan} plan`;
+      const name=data.full_name||currentUser.email;
+      document.getElementById('user-name').textContent=name;
+      document.getElementById('user-avatar').textContent=name.charAt(0).toUpperCase();
+      document.getElementById('user-plan').textContent=`${data.plan.charAt(0).toUpperCase()+data.plan.slice(1)} plan`;
+      const parts=(data.full_name||'').split(' ');
+      document.getElementById('profile-firstname').value=parts[0]||'';
+      document.getElementById('profile-lastname').value=parts.slice(1).join(' ')||'';
+      document.getElementById('profile-email').value=data.email||currentUser.email;
+      document.getElementById('profile-plan').value=`${data.plan.charAt(0).toUpperCase()+data.plan.slice(1)} — ${data.reviews_limit} reviews/month`;
+      document.getElementById('sub-current-desc').textContent=`You are on the ${data.plan} plan with ${rem} reviews remaining this month.`;
+      const planCard=document.getElementById(`plan-${data.plan}`);
+      if(planCard){planCard.classList.add('current');planCard.insertAdjacentHTML('afterbegin','<div class="plan-badge">Current</div>');}
+    }
+  }
+  function showSection(name){
+    ['profile','subscription','security','danger'].forEach((s,i)=>{
+      document.getElementById(s+'-section').classList.toggle('active',s===name);
+      document.querySelectorAll('.settings-nav-item')[i].classList.toggle('active',s===name);
+    });
+  }
+  async function saveProfile(){
+    const first=document.getElementById('profile-firstname').value.trim();
+    const last=document.getElementById('profile-lastname').value.trim();
+    const full_name=`${first} ${last}`.trim();
+    const{error}=await sb.from('profiles').update({full_name}).eq('user_id',currentUser.id);
+    if(error){showAlert('profile-error',error.message,'error');return;}
+    document.getElementById('user-name').textContent=full_name;
+    document.getElementById('user-avatar').textContent=full_name.charAt(0).toUpperCase();
+    showAlert('profile-success','Profile updated successfully!','success');
+  }
+  async function changePassword(){
+    const pw=document.getElementById('new-password').value;
+    const confirm=document.getElementById('confirm-password').value;
+    if(pw.length<8){showAlert('pw-error','Password must be at least 8 characters.','error');return;}
+    if(pw!==confirm){showAlert('pw-error','Passwords do not match.','error');return;}
+    const{error}=await sb.auth.updateUser({password:pw});
+    if(error){showAlert('pw-error',error.message,'error');return;}
+    showAlert('pw-success','Password updated successfully!','success');
+    document.getElementById('new-password').value='';document.getElementById('confirm-password').value='';
+  }
+  async function deleteAccount(){
+    if(!confirm('Are you sure? This cannot be undone.'))return;
+    await sb.from('profiles').delete().eq('user_id',currentUser.id);
+    await sb.from('reviews').delete().eq('user_id',currentUser.id);
+    await sb.auth.signOut();window.location.href='auth.html';
+  }
+  async function signOut(){await sb.auth.signOut();window.location.href='auth.html';}
+  function showAlert(id,msg,type){const el=document.getElementById(id);el.textContent=msg;el.className=`alert ${type} show`;setTimeout(()=>el.classList.remove('show'),4000);}
+  init();
+</script>
+</body>
+</html>

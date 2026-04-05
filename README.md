@@ -1,67 +1,35 @@
-# Brand QA Reviewer — Backend
+# QA Buddy — Complete Project
 
-Accepts PDF, video (MP4/MOV), and image uploads, runs them through Gemini 2.0 Flash,
-and returns a structured brand QA report as JSON.
+## File Structure
 
-## Files
+### Frontend Files (goes on Cloudflare Pages)
+- home.html — Landing page
+- auth.html — Sign in / Sign up
+- app.html — Main QA review tool
+- settings.html — Account settings
+- styles.css — Landing page styles
+- Logo.png — Your logo (add this)
+- mascot.png — Your mascot image (add this)
+- banner-video.mp4 — Hero video (add this)
 
-- `main.py` — FastAPI backend
-- `requirements.txt` — Python dependencies
-- `railway.toml` — Railway deployment config
-- `index.html` — Simple frontend (open directly in browser)
+### Backend Files (goes on Railway)
+- main.py — FastAPI Python backend
+- requirements.txt — Python dependencies
+- railway.toml — Railway config
+- Dockerfile — Docker config
+- brand_design_guidelines.txt — Design rules for AI
 
-## Deploy to Railway (free, ~5 min)
+## Environment Variables needed on Railway
+- GEMINI_API_KEY = your Gemini API key
+- SUPABASE_SERVICE_KEY = your Supabase service role key
 
-1. Go to https://railway.app and sign up (free tier works)
-2. Click **New Project** → **Deploy from GitHub repo**
-   - Or use Railway CLI: `railway init` then `railway up`
-3. Add environment variable:
-   - Key: `GEMINI_API_KEY`
-   - Value: your Gemini API key from https://aistudio.google.com/app/apikey
-4. Railway auto-deploys. Copy your public URL (e.g. `https://brand-qa.railway.app`)
+## Supabase
+- Project URL: https://gulufaauvfgijhxkxwwa.supabase.co
+- Tables needed: profiles, reviews (already created)
 
-## Run locally
-
-```bash
-pip install -r requirements.txt
-export GEMINI_API_KEY=your_key_here
-uvicorn main:app --reload
-```
-
-Then open `index.html` in your browser (API URL = `http://localhost:8000`)
-
-## API
-
-### POST /review
-
-Form data:
-- `file` — the file to review (PDF, MP4, MOV, JPG, PNG, etc.)
-- `brand_colors` — optional, e.g. `#df4590, #ffffff`
-- `brand_fonts` — optional, e.g. `Arial, Helvetica`
-
-Response JSON:
-```json
-{
-  "overall_score": 7,
-  "overall_verdict": "Needs Work",
-  "summary": "...",
-  "checks": [
-    {
-      "category": "Color usage",
-      "status": "Pass | Fail | Warning",
-      "finding": "...",
-      "recommendation": "..."
-    }
-  ],
-  "top_issues": ["...", "..."],
-  "quick_wins": ["...", "..."]
-}
-```
-
-## Supported file types
-
-| Type | Extensions |
-|------|-----------|
-| Video | .mp4, .mov, .avi, .mkv, .webm |
-| Image | .jpg, .jpeg, .png, .gif, .webp |
-| Document | .pdf |
+## Deploy Steps
+1. Upload ALL files to one GitHub repo
+2. Connect Railway to GitHub repo — deploys main.py automatically
+3. Connect Cloudflare Pages to GitHub repo — serves HTML files automatically
+4. Add environment variables to Railway
+5. Go to Supabase → Authentication → Settings → turn OFF email confirmations for testing

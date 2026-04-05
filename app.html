@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QA Buddy — Review</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <style>
+    :root {
+      --orange:#F57C28;--orange-light:#FEF0E6;--orange-dark:#D4621A;
+      --dark:#1E1E1E;--gray:#6B6B6B;--gray-light:#F5F5F4;
+      --border:#E8E6E1;--white:#FFFFFF;
+      --green:#2D7D52;--green-bg:#EBF5EE;
+      --amber:#B45309;--amber-bg:#FEF3C7;
+      --red:#B91C1C;--red-bg:#FEE2E2;
+      --blue:#1D4ED8;--blue-bg:#EFF6FF;
+    }
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:'Poppins',sans-serif;background:var(--gray-light);color:var(--dark);min-height:100vh;}
+    .app{display:grid;grid-template-columns:260px 1fr;min-height:100vh;}
+    .sidebar{background:var(--dark);padding:20px 14px;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:auto;}
+    .sidebar-logo{display:flex;align-items:center;padding:4px 8px;margin-bottom:8px;text-decoration:none;}
+    .sidebar-logo img{height:28px;object-fit:contain;}
+    .sidebar-mascot{text-align:center;padding:12px 8px 8px;margin-bottom:4px;}
+    .sidebar-mascot img{width:70px;filter:drop-shadow(0 4px 12px rgba(245,124,40,0.3));transition:transform 0.3s;}
+    .sidebar-mascot img:hover{transform:scale(1.08);}
+    .mascot-bubble{background:rgba(245,124,40,0.12);border:1px solid rgba(245,124,40,0.2);border-radius:10px;padding:7px 10px;font-size:11px;color:rgba(255,255,255,0.6);text-align:center;margin-top:6px;line-height:1.4;}
+    .nav-section-label{font-size:10px;font-weight:600;color:rgba(255,255,255,0.22);text-transform:uppercase;letter-spacing:0.08em;padding:12px 10px 5px;}
+    .nav-item{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:8px;font-size:13px;color:rgba(255,255,255,0.5);cursor:pointer;transition:all 0.15s;text-decoration:none;border:none;background:none;width:100%;font-family:'Poppins',sans-serif;}
+    .nav-item:hover{background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.85);}
+    .nav-item.active{background:rgba(245,124,40,0.15);color:var(--orange);}
+    .nav-item svg{width:15px;height:15px;flex-shrink:0;}
+    .sidebar-footer{margin-top:auto;padding-top:14px;border-top:1px solid rgba(255,255,255,0.07);}
+    .credits-card{background:rgba(245,124,40,0.1);border:1px solid rgba(245,124,40,0.2);border-radius:10px;padding:11px 12px;margin-bottom:10px;}
+    .credits-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;}
+    .credits-label{font-size:11px;color:rgba(255,255,255,0.45);}
+    .credits-count{font-size:12px;font-weight:700;color:var(--orange);font-family:'DM Mono',monospace;}
+    .credits-bar{height:3px;background:rgba(255,255,255,0.08);border-radius:2px;}
+    .credits-fill{height:100%;background:var(--orange);border-radius:2px;transition:width 0.5s;}
+    .credits-sub{font-size:10px;color:rgba(255,255,255,0.25);margin-top:4px;}
+    .upgrade-btn{width:100%;padding:8px;background:var(--orange);border:none;border-radius:7px;font-size:12px;font-weight:600;color:white;cursor:pointer;font-family:'Poppins',sans-serif;margin-bottom:10px;transition:background 0.2s;}
+    .upgrade-btn:hover{background:var(--orange-dark);}
+    .user-row{display:flex;align-items:center;gap:9px;padding:7px 8px;border-radius:8px;cursor:pointer;transition:background 0.15s;text-decoration:none;}
+    .user-row:hover{background:rgba(255,255,255,0.05);}
+    .user-avatar{width:32px;height:32px;background:var(--orange);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:white;flex-shrink:0;}
+    .user-info{flex:1;overflow:hidden;}
+    .user-name{font-size:12px;font-weight:600;color:rgba(255,255,255,0.85);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .user-plan{font-size:10px;color:var(--orange);}
+    .signout-btn{display:flex;align-items:center;gap:7px;padding:7px 8px;border-radius:8px;font-size:12px;color:rgba(255,255,255,0.3);cursor:pointer;border:none;background:none;width:100%;font-family:'Poppins',sans-serif;transition:all 0.15s;margin-top:2px;}
+    .signout-btn:hover{color:rgba(255,100,100,0.8);background:rgba(185,28,28,0.08);}
+    .main{padding:28px 32px;}
+    .page-title{font-size:20px;font-weight:700;letter-spacing:-0.4px;margin-bottom:4px;}
+    .page-sub{font-size:13px;color:var(--gray);margin-bottom:24px;}
+    .card{background:var(--white);border:1px solid var(--border);border-radius:14px;padding:20px;margin-bottom:14px;box-shadow:0 1px 3px rgba(0,0,0,0.04);}
+    .card-label{font-size:10px;font-weight:700;color:var(--gray);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:14px;}
+    .brand-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+    .field{display:flex;flex-direction:column;gap:5px;}
+    .field label{font-size:12px;font-weight:500;color:var(--gray);}
+    .field input{padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:'Poppins',sans-serif;color:var(--dark);outline:none;transition:border-color 0.2s;}
+    .field input:focus{border-color:var(--orange);}
+    .upload-zone{border:1.5px dashed var(--border);border-radius:12px;padding:36px 24px;text-align:center;cursor:pointer;transition:all 0.2s;margin-top:14px;}
+    .upload-zone:hover,.upload-zone.dragover{border-color:var(--orange);background:var(--orange-light);}
+    .upload-zone input{display:none;}
+    .upload-icon{width:48px;height:48px;background:var(--gray-light);border-radius:12px;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;transition:background 0.2s;}
+    .upload-zone:hover .upload-icon,.upload-zone.dragover .upload-icon{background:rgba(245,124,40,0.15);}
+    .upload-icon svg{width:20px;height:20px;color:var(--gray);}
+    .upload-zone:hover .upload-icon svg{color:var(--orange);}
+    .upload-title{font-size:14px;font-weight:600;margin-bottom:4px;}
+    .upload-sub{font-size:12px;color:var(--gray);}
+    .upload-badges{display:flex;gap:6px;justify-content:center;margin-top:10px;flex-wrap:wrap;}
+    .badge{font-size:11px;padding:3px 9px;border-radius:20px;background:var(--gray-light);color:var(--gray);border:1px solid var(--border);font-weight:500;}
+    .file-chip{display:flex;align-items:center;gap:10px;background:var(--gray-light);border-radius:8px;padding:9px 12px;margin-top:12px;}
+    .file-chip-icon{font-size:18px;}
+    .file-chip-name{font-size:13px;font-weight:500;flex:1;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+    .file-chip-clear{background:none;border:none;color:var(--gray);cursor:pointer;font-size:15px;padding:2px;transition:color 0.2s;}
+    .file-chip-clear:hover{color:var(--red);}
+    .run-btn{width:100%;padding:13px;background:var(--orange);color:white;border:none;border-radius:9px;font-size:14px;font-weight:600;font-family:'Poppins',sans-serif;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:8px;margin-top:14px;}
+    .run-btn:hover{background:var(--orange-dark);transform:translateY(-1px);box-shadow:0 4px 16px rgba(245,124,40,0.3);}
+    .run-btn:disabled{opacity:0.45;cursor:not-allowed;transform:none;box-shadow:none;}
+    .error-bar{background:var(--red-bg);border:1px solid #FECACA;border-radius:8px;padding:11px 14px;font-size:13px;color:var(--red);display:none;margin-top:10px;}
+    .error-bar.show{display:block;}
+    .limit-banner{background:var(--amber-bg);border:1px solid #FCD34D;border-radius:10px;padding:14px 16px;font-size:13px;color:var(--amber);display:none;margin-top:12px;}
+    .limit-banner.show{display:flex;align-items:center;gap:10px;justify-content:space-between;}
+    .limit-upgrade{padding:7px 16px;background:var(--orange);color:white;border:none;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;font-family:'Poppins',sans-serif;white-space:nowrap;}
+    .results{display:none;}
+    .results.show{display:block;}
+    .action-bar{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;}
+    .action-btn{display:flex;align-items:center;gap:6px;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:500;font-family:'Poppins',sans-serif;cursor:pointer;transition:all 0.15s;border:1px solid var(--border);background:var(--white);color:var(--gray);}
+    .action-btn:hover{border-color:var(--orange);color:var(--orange);background:var(--orange-light);}
+    .action-btn.primary{background:var(--orange);color:white;border-color:var(--orange);}
+    .action-btn.primary:hover{background:var(--orange-dark);}
+    .action-btn svg{width:13px;height:13px;}
+    .score-header{background:var(--white);border:1px solid var(--border);border-radius:14px;padding:22px;margin-bottom:14px;}
+    .score-top{display:flex;align-items:flex-start;gap:18px;}
+    .score-ring{position:relative;width:70px;height:70px;flex-shrink:0;}
+    .score-ring svg{transform:rotate(-90deg);}
+    .score-ring-num{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:19px;font-weight:700;font-family:'DM Mono',monospace;}
+    .score-info{flex:1;}
+    .score-verdict{font-size:21px;font-weight:700;letter-spacing:-0.4px;margin-bottom:5px;}
+    .score-summary{font-size:13px;color:var(--gray);line-height:1.6;}
+    .score-meta{display:flex;gap:7px;margin-top:10px;flex-wrap:wrap;}
+    .meta-tag{font-size:11px;padding:3px 9px;border-radius:20px;background:var(--gray-light);color:var(--gray);font-family:'DM Mono',monospace;border:1px solid var(--border);}
+    .checklist-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;}
+    .cl-col{border-radius:10px;padding:13px;}
+    .cl-pass{background:var(--green-bg);}
+    .cl-warn{background:var(--amber-bg);}
+    .cl-na{background:var(--gray-light);border:1px solid var(--border);}
+    .cl-head{font-size:11px;font-weight:700;margin-bottom:9px;}
+    .cl-pass .cl-head{color:var(--green);}
+    .cl-warn .cl-head{color:var(--amber);}
+    .cl-na .cl-head{color:var(--gray);}
+    .cl-list{list-style:none;display:flex;flex-direction:column;gap:4px;}
+    .cl-list li{font-size:12px;color:var(--dark);line-height:1.4;padding-left:9px;position:relative;}
+    .cl-list li::before{content:'';position:absolute;left:0;top:6px;width:3px;height:3px;border-radius:50%;background:currentColor;opacity:0.4;}
+    .two-col{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+    .fix-item{display:flex;gap:9px;padding:10px 12px;background:var(--red-bg);border-radius:8px;font-size:12px;line-height:1.5;margin-bottom:7px;}
+    .fix-num{font-family:'DM Mono',monospace;font-size:10px;color:var(--red);font-weight:700;flex-shrink:0;padding-top:1px;}
+    .str-item{display:flex;gap:8px;padding:10px 12px;background:var(--green-bg);border-radius:8px;font-size:12px;line-height:1.5;margin-bottom:7px;}
+    .str-icon{color:var(--green);flex-shrink:0;font-size:13px;}
+    .section-item{background:var(--white);border:1px solid var(--border);border-radius:10px;margin-bottom:8px;overflow:hidden;}
+    .section-head{display:flex;align-items:center;gap:10px;padding:13px 15px;cursor:pointer;transition:background 0.15s;}
+    .section-head:hover{background:var(--gray-light);}
+    .section-label{flex:1;font-size:13px;font-weight:500;}
+    .sec-badge{font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;font-family:'DM Mono',monospace;}
+    .sec-pass{background:var(--green-bg);color:var(--green);}
+    .sec-warn{background:var(--amber-bg);color:var(--amber);}
+    .sec-fail{background:var(--red-bg);color:var(--red);}
+    .sec-chev{color:var(--gray);font-size:11px;transition:transform 0.2s;}
+    .sec-chev.open{transform:rotate(180deg);}
+    .section-body{padding:0 15px 15px;display:none;}
+    .section-body.open{display:block;}
+    .issue-card{border-radius:8px;padding:11px 13px;margin-bottom:7px;border-left:3px solid;}
+    .i-high{background:var(--red-bg);border-color:#EF4444;}
+    .i-medium{background:var(--amber-bg);border-color:#F59E0B;}
+    .i-low{background:var(--blue-bg);border-color:#3B82F6;}
+    .issue-top{display:flex;align-items:center;gap:6px;margin-bottom:5px;}
+    .issue-type{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;}
+    .i-high .issue-type{color:var(--red);}
+    .i-medium .issue-type{color:var(--amber);}
+    .i-low .issue-type{color:var(--blue);}
+    .issue-sev{font-size:10px;color:var(--gray);padding:1px 6px;background:white;border-radius:8px;}
+    .issue-desc{font-size:12px;color:var(--dark);line-height:1.5;margin-bottom:7px;}
+    .issue-fix{font-size:12px;color:var(--gray);background:white;border-radius:6px;padding:7px 10px;display:flex;gap:5px;line-height:1.5;}
+    .fix-label{font-weight:700;color:var(--green);flex-shrink:0;}
+    .sec-passes{font-size:11px;color:var(--green);padding:7px 10px;background:var(--green-bg);border-radius:7px;margin-top:6px;line-height:1.5;}
+    .loading-overlay{display:none;position:fixed;inset:0;background:rgba(245,245,244,0.88);backdrop-filter:blur(6px);z-index:200;align-items:center;justify-content:center;}
+    .loading-overlay.show{display:flex;}
+    .loading-card{background:white;border:1px solid var(--border);border-radius:20px;padding:36px 44px;text-align:center;box-shadow:0 16px 48px rgba(0,0,0,0.1);max-width:320px;}
+    .loading-mascot{width:80px;margin:0 auto 16px;animation:float 2s ease-in-out infinite;}
+    .loading-mascot img{width:100%;}
+    @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+    .loading-title{font-size:16px;font-weight:700;margin-bottom:6px;}
+    .loading-msg{font-size:13px;color:var(--gray);line-height:1.5;}
+    .loading-dots{display:flex;gap:5px;justify-content:center;margin-top:14px;}
+    .loading-dots span{width:6px;height:6px;border-radius:50%;background:var(--orange);animation:dp 1.2s ease-in-out infinite;}
+    .loading-dots span:nth-child(2){animation-delay:0.2s;}
+    .loading-dots span:nth-child(3){animation-delay:0.4s;}
+    @keyframes dp{0%,80%,100%{opacity:0.2;transform:scale(0.8)}40%{opacity:1;transform:scale(1)}}
+    @media(max-width:900px){.app{grid-template-columns:1fr;}.sidebar{display:none;}.checklist-grid,.two-col{grid-template-columns:1fr;}.main{padding:20px 16px;}}
+  </style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <a href="home.html" class="sidebar-logo">
+      <img src="Logo.png" alt="QA Buddy" onerror="this.style.display='none'"/>
+    </a>
+    <div class="sidebar-mascot">
+      <img src="mascot.png" alt="QA Buddy" onerror="this.style.fontSize='48px';this.textContent='🤖'"/>
+      <div class="mascot-bubble" id="mascot-msg">Ready to review your designs!</div>
+    </div>
+    <div class="nav-section-label">Workspace</div>
+    <a href="app.html" class="nav-item active">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+      New Review
+    </a>
+    <div class="nav-section-label" style="margin-top:6px;">Account</div>
+    <a href="settings.html" class="nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+      Account Settings
+    </a>
+    <div class="sidebar-footer">
+      <div class="credits-card">
+        <div class="credits-top"><span class="credits-label">Reviews left</span><span class="credits-count" id="credits-count">— / —</span></div>
+        <div class="credits-bar"><div class="credits-fill" id="credits-fill" style="width:100%"></div></div>
+        <div class="credits-sub" id="credits-sub">Loading...</div>
+      </div>
+      <button class="upgrade-btn" onclick="window.location.href='settings.html'">⚡ Upgrade plan</button>
+      <a href="settings.html" class="user-row">
+        <div class="user-avatar" id="user-avatar">?</div>
+        <div class="user-info"><div class="user-name" id="user-name">Loading...</div><div class="user-plan" id="user-plan">Free plan</div></div>
+      </a>
+      <button class="signout-btn" onclick="signOut()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+        Sign out
+      </button>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="page-title">New Review</div>
+    <div class="page-sub">Upload a file and get instant brand & design QA feedback</div>
+    <div class="card">
+      <div class="card-label">Brand Guidelines</div>
+      <div class="brand-row">
+        <div class="field"><label>Brand Colors</label><input type="text" id="brand-colors" placeholder="#F57C28, #1E1E1E, #FFFFFF"/></div>
+        <div class="field"><label>Brand Fonts</label><input type="text" id="brand-fonts" placeholder="Poppins, Helvetica"/></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-label">Upload File</div>
+      <div class="upload-zone" id="upload-zone">
+        <input type="file" id="file-input" accept=".pdf,.mp4,.mov,.avi,.mkv,.webm,.jpg,.jpeg,.png,.gif,.webp"/>
+        <div class="upload-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg></div>
+        <div class="upload-title">Drop your file here</div>
+        <div class="upload-sub">or click to browse</div>
+        <div class="upload-badges"><span class="badge">PDF</span><span class="badge">MP4</span><span class="badge">MOV</span><span class="badge">JPG</span><span class="badge">PNG</span><span class="badge">WEBP</span></div>
+        <div class="file-chip" id="file-chip" style="display:none;"><span class="file-chip-icon" id="file-icon">📄</span><span class="file-chip-name" id="file-name"></span><button class="file-chip-clear" onclick="clearFile(event)">✕</button></div>
+      </div>
+      <button class="run-btn" id="run-btn" onclick="runReview()">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+        Run Brand QA Review
+      </button>
+      <div class="error-bar" id="error-bar"></div>
+      <div class="limit-banner" id="limit-banner"><span>🚫 You've used all your reviews this month.</span><button class="limit-upgrade" onclick="window.location.href='settings.html'">Upgrade Plan</button></div>
+    </div>
+
+    <div class="results" id="results">
+      <div class="action-bar">
+        <button class="action-btn primary" onclick="downloadPDF()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>Download PDF Report</button>
+        <button class="action-btn" onclick="copyJSON()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>Copy JSON</button>
+        <button class="action-btn" onclick="newReview()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>New Review</button>
+      </div>
+      <div class="score-header">
+        <div class="score-top">
+          <div class="score-ring">
+            <svg width="70" height="70" viewBox="0 0 70 70"><circle cx="35" cy="35" r="28" fill="none" stroke="#E8E6E1" stroke-width="5"/><circle cx="35" cy="35" r="28" fill="none" stroke="#F57C28" stroke-width="5" stroke-linecap="round" id="score-arc" stroke-dasharray="175.9" stroke-dashoffset="175.9"/></svg>
+            <div class="score-ring-num" id="score-num">—</div>
+          </div>
+          <div class="score-info">
+            <div class="score-verdict" id="verdict-text"></div>
+            <div class="score-summary" id="summary-text"></div>
+            <div class="score-meta" id="score-meta"></div>
+          </div>
+        </div>
+      </div>
+      <div class="card"><div class="card-label">Design Checklist</div><div class="checklist-grid" id="checklist-grid"></div></div>
+      <div class="two-col">
+        <div class="card"><div class="card-label">🔴 Must Fix</div><div id="must-fix"></div></div>
+        <div class="card"><div class="card-label">✅ Strengths</div><div id="strengths"></div></div>
+      </div>
+      <div class="card" id="sections-card" style="display:none;"><div class="card-label">Page / Slide Review</div><div id="sections-list"></div></div>
+    </div>
+  </main>
+</div>
+
+<div class="loading-overlay" id="loading-overlay">
+  <div class="loading-card">
+    <div class="loading-mascot"><img src="mascot.png" alt="Reviewing" onerror="this.style.fontSize='48px';this.textContent='🔍'"/></div>
+    <div class="loading-title">Hang tight!</div>
+    <div class="loading-msg" id="loading-text">Reviewing your design...</div>
+    <div class="loading-dots"><span></span><span></span><span></span></div>
+  </div>
+</div>
+
+<script>
+  const SUPABASE_URL='https://gulufaauvfgijhxkxwwa.supabase.co';
+  const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd1bHVmYWF1dmZnaWpoeGt4d3dhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUzMDg5OTUsImV4cCI6MjA5MDg4NDk5NX0.V_zO1ftyDRzFdCP3OVOU0hUrqXr5VvvUdBhaGLBVYKQ';
+  const API_URL='https://brand-qa-reviewer-production.up.railway.app';
+  const MODEL='gemini-2.5-flash';
+  const{createClient}=supabase;
+  const sb=createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+  let currentUser=null,userProfile=null,lastResult=null,lastFileName='';
+
+  async function init(){
+    const{data:{session}}=await sb.auth.getSession();
+    if(!session){window.location.href='auth.html';return;}
+    currentUser=session.user;
+    await loadProfile();
+  }
+  async function loadProfile(){
+    const{data}=await sb.from('profiles').select('*').eq('user_id',currentUser.id).single();
+    if(data){
+      userProfile=data;
+      const today=new Date(),resetDate=new Date(data.reset_date);
+      if(today>=resetDate){
+        const newReset=new Date(today.getFullYear(),today.getMonth()+1,1);
+        await sb.from('profiles').update({reviews_used:0,reset_date:newReset.toISOString().split('T')[0]}).eq('user_id',currentUser.id);
+        userProfile.reviews_used=0;
+      }
+      updateSidebarUI();
+    }
+  }
+  function updateSidebarUI(){
+    if(!userProfile)return;
+    const rem=Math.max(0,userProfile.reviews_limit-userProfile.reviews_used);
+    const pct=(rem/userProfile.reviews_limit)*100;
+    document.getElementById('credits-count').textContent=`${rem} / ${userProfile.reviews_limit}`;
+    document.getElementById('credits-fill').style.width=`${pct}%`;
+    document.getElementById('credits-sub').textContent=`${userProfile.plan} plan · resets monthly`;
+    document.getElementById('user-plan').textContent=`${userProfile.plan.charAt(0).toUpperCase()+userProfile.plan.slice(1)} plan`;
+    const name=userProfile.full_name||currentUser.email;
+    document.getElementById('user-name').textContent=name;
+    document.getElementById('user-avatar').textContent=name.charAt(0).toUpperCase();
+    if(rem===0)document.getElementById('limit-banner').classList.add('show');
+  }
+  async function signOut(){await sb.auth.signOut();window.location.href='auth.html';}
+
+  const zone=document.getElementById('upload-zone'),fileInput=document.getElementById('file-input');
+  zone.addEventListener('click',e=>{if(!e.target.closest('.file-chip-clear'))fileInput.click();});
+  fileInput.addEventListener('change',()=>{if(fileInput.files[0])selectFile(fileInput.files[0]);});
+  zone.addEventListener('dragover',e=>{e.preventDefault();zone.classList.add('dragover');});
+  zone.addEventListener('dragleave',()=>zone.classList.remove('dragover'));
+  zone.addEventListener('drop',e=>{e.preventDefault();zone.classList.remove('dragover');if(e.dataTransfer.files[0])selectFile(e.dataTransfer.files[0]);});
+
+  function selectFile(file){
+    const icons={pdf:'📄',mp4:'🎬',mov:'🎬',avi:'🎬',mkv:'🎬',webm:'🎬',jpg:'🖼',jpeg:'🖼',png:'🖼',gif:'🖼',webp:'🖼'};
+    const ext=file.name.split('.').pop().toLowerCase();
+    document.getElementById('file-icon').textContent=icons[ext]||'📎';
+    document.getElementById('file-name').textContent=file.name;
+    document.getElementById('file-chip').style.display='flex';
+    lastFileName=file.name;
+  }
+  function clearFile(e){e.stopPropagation();fileInput.value='';document.getElementById('file-chip').style.display='none';}
+
+  const mascotMsgs=['Ready to review!','Drop a file and go!','I catch every issue!','Powered by Gemini ⚡'];
+  let mi=0;setInterval(()=>{mi=(mi+1)%mascotMsgs.length;document.getElementById('mascot-msg').textContent=mascotMsgs[mi];},4000);
+
+  const loadMsgs=['Uploading to Gemini...','Analysing layout & spacing...','Checking color compliance...','Reviewing typography...','Generating your report...'];
+
+  async function runReview(){
+    const file=fileInput.files[0];
+    if(!file){showError('Please select a file to review.');return;}
+    if(!userProfile){showError('Loading your account...');return;}
+    const rem=userProfile.reviews_limit-userProfile.reviews_used;
+    if(rem<=0){document.getElementById('limit-banner').classList.add('show');return;}
+    hideError();
+    document.getElementById('results').classList.remove('show');
+    document.getElementById('loading-overlay').classList.add('show');
+    document.getElementById('run-btn').disabled=true;
+    let lmi=0;
+    const interval=setInterval(()=>{document.getElementById('loading-text').textContent=loadMsgs[++lmi%loadMsgs.length];},3000);
+    try{
+      const fd=new FormData();
+      fd.append('file',file);
+      fd.append('brand_colors',document.getElementById('brand-colors').value);
+      fd.append('brand_fonts',document.getElementById('brand-fonts').value);
+      fd.append('model_name',MODEL);
+      fd.append('user_id',currentUser.id);
+      const res=await fetch(`${API_URL}/review`,{method:'POST',body:fd});
+      const data=await res.json();
+      if(data.error)throw new Error(data.error);
+      lastResult=data;
+      await sb.from('profiles').update({reviews_used:userProfile.reviews_used+1}).eq('user_id',currentUser.id);
+      userProfile.reviews_used+=1;
+      await sb.from('reviews').insert({user_id:currentUser.id,file_name:lastFileName,score:data.overall_score,verdict:data.overall_verdict,model_used:data.model_used||MODEL});
+      updateSidebarUI();
+      renderResult(data);
+      document.getElementById('mascot-msg').textContent='Review complete! 🎉';
+    }catch(e){showError('Error: '+e.message);}
+    finally{clearInterval(interval);document.getElementById('loading-overlay').classList.remove('show');document.getElementById('run-btn').disabled=false;}
+  }
+
+  function showError(msg){const el=document.getElementById('error-bar');el.textContent=msg;el.classList.add('show');}
+  function hideError(){document.getElementById('error-bar').classList.remove('show');}
+  function scoreColor(s){return s>=7?'#2D7D52':s>=4?'#B45309':'#B91C1C';}
+  function scoreBadgeClass(s){return s>=7?'sec-pass':s>=4?'sec-warn':'sec-fail';}
+  function issueClass(sev){const s=(sev||'').toLowerCase();return s==='high'?'i-high':s==='low'?'i-low':'i-medium';}
+
+  function renderResult(data){
+    const score=data.overall_score||0;
+    const arc=document.getElementById('score-arc');
+    arc.style.stroke=scoreColor(score);
+    arc.style.strokeDashoffset=175.9-(175.9*score/10);
+    document.getElementById('score-num').textContent=score;
+    document.getElementById('score-num').style.color=scoreColor(score);
+    document.getElementById('verdict-text').textContent=data.overall_verdict||'';
+    document.getElementById('summary-text').textContent=data.summary||'';
+    const pills=[data.model_used,data.asset_type,lastFileName].filter(Boolean);
+    document.getElementById('score-meta').innerHTML=pills.map(p=>`<span class="meta-tag">${p}</span>`).join('');
+    const cl=data.checklist||{};
+    document.getElementById('checklist-grid').innerHTML=`
+      <div class="cl-col cl-pass"><div class="cl-head">✅ Meets standards</div><ul class="cl-list">${(cl.meets||[]).map(i=>`<li>${i}</li>`).join('')||'<li style="opacity:0.4">None</li>'}</ul></div>
+      <div class="cl-col cl-warn"><div class="cl-head">⚠️ Needs changes</div><ul class="cl-list">${(cl.needs_changes||[]).map(i=>`<li>${i}</li>`).join('')||'<li style="opacity:0.4">None</li>'}</ul></div>
+      <div class="cl-col cl-na"><div class="cl-head">— Not applicable</div><ul class="cl-list">${(cl.not_detected_or_not_applicable||[]).map(i=>`<li>${i}</li>`).join('')||'<li style="opacity:0.4">None</li>'}</ul></div>`;
+    document.getElementById('must-fix').innerHTML=(data.top_fixes||[]).map((f,i)=>`<div class="fix-item"><span class="fix-num">${String(i+1).padStart(2,'0')}</span>${f}</div>`).join('');
+    document.getElementById('strengths').innerHTML=(data.top_strengths||[]).map(s=>`<div class="str-item"><span class="str-icon">✓</span>${s}</div>`).join('');
+    const sections=data.sections||[];
+    const secCard=document.getElementById('sections-card');
+    const secList=document.getElementById('sections-list');
+    secList.innerHTML='';
+    if(sections.length){
+      secCard.style.display='block';
+      sections.forEach((sec,idx)=>{
+        const id='sec'+idx,sc=sec.score||0;
+        const div=document.createElement('div');div.className='section-item';
+        div.innerHTML=`<div class="section-head" onclick="toggleSec('${id}')"><span class="section-label">${(sec.section_label||'Section '+(idx+1)).replace(/\n/g,' ')}</span><span class="sec-badge ${scoreBadgeClass(sc)}">${sc}/10</span><span class="sec-chev" id="chev${id}">▾</span></div><div class="section-body" id="${id}">${(sec.issues||[]).map(issue=>`<div class="issue-card ${issueClass(issue.severity)}"><div class="issue-top"><span class="issue-type">${issue.type||''}</span>${issue.severity?`<span class="issue-sev">${issue.severity}</span>`:''}</div><div class="issue-desc">${issue.description||''}</div>${issue.fix?`<div class="issue-fix"><span class="fix-label">Fix →</span>${issue.fix}</div>`:''}</div>`).join('')}${sec.meets?.length?`<div class="sec-passes">✅ ${sec.meets.join(' · ')}</div>`:''}</div>`;
+        secList.appendChild(div);
+      });
+      document.getElementById('sec0')?.classList.add('open');
+      document.getElementById('chevsec0')?.classList.add('open');
+    }else{secCard.style.display='none';}
+    document.getElementById('results').classList.add('show');
+    document.getElementById('results').scrollIntoView({behavior:'smooth'});
+  }
+
+  function toggleSec(id){document.getElementById(id).classList.toggle('open');document.getElementById('chev'+id).classList.toggle('open');}
+  function newReview(){document.getElementById('results').classList.remove('show');fileInput.value='';document.getElementById('file-chip').style.display='none';window.scrollTo({top:0,behavior:'smooth'});}
+  function copyJSON(){if(!lastResult)return;navigator.clipboard.writeText(JSON.stringify(lastResult,null,2));const btn=event.target.closest('.action-btn');const orig=btn.innerHTML;btn.innerHTML='✓ Copied!';setTimeout(()=>btn.innerHTML=orig,2000);}
+
+  function downloadPDF(){
+    if(!lastResult)return;
+    const{jsPDF}=window.jspdf;const doc=new jsPDF({unit:'mm',format:'a4'});
+    const W=210,M=18,CW=W-M*2;let y=M;
+    function at(text,size,weight,color,indent){doc.setFontSize(size);doc.setFont('helvetica',weight||'normal');doc.setTextColor(...(color||[30,30,30]));const lines=doc.splitTextToSize(String(text),CW-(indent||0));lines.forEach(l=>{if(y>272){doc.addPage();y=M;}doc.text(l,M+(indent||0),y);y+=size*0.44;});}
+    function sp(n){y+=n||4;}
+    function ln(){doc.setDrawColor(232,230,225);doc.line(M,y,W-M,y);sp(4);}
+    doc.setFillColor(245,124,40);doc.roundedRect(M,y,CW,18,3,3,'F');
+    doc.setFontSize(13);doc.setFont('helvetica','bold');doc.setTextColor(255,255,255);
+    doc.text('QA Buddy — Brand & Design Review Report',M+6,y+7);
+    doc.setFontSize(8);doc.setFont('helvetica','normal');
+    doc.text(`${lastFileName}   ·   ${lastResult.model_used||''}   ·   ${new Date().toLocaleDateString()}`,M+6,y+14);
+    y+=24;
+    const sc=lastResult.overall_score;
+    doc.setFillColor(...(sc>=7?[45,125,82]:sc>=4?[180,83,9]:[185,28,28]));
+    doc.circle(M+8,y+4,7,'F');
+    doc.setFontSize(10);doc.setFont('helvetica','bold');doc.setTextColor(255,255,255);
+    doc.text(String(sc),M+8,y+5.5,{align:'center'});
+    doc.setTextColor(30,30,30);doc.setFontSize(14);doc.setFont('helvetica','bold');
+    doc.text(lastResult.overall_verdict||'',M+20,y+4);
+    y+=5;doc.setFontSize(9);doc.setFont('helvetica','normal');doc.setTextColor(107,107,107);
+    doc.splitTextToSize(lastResult.summary||'',CW-20).forEach(l=>{doc.text(l,M+20,y);y+=4;});y+=6;ln();
+    at('MUST FIX',8,'bold',[185,28,28]);sp(2);(lastResult.top_fixes||[]).forEach((f,i)=>{at(`${i+1}. ${f}`,9,'normal',[30,30,30],2);sp(1);});sp(4);ln();
+    at('STRENGTHS',8,'bold',[45,125,82]);sp(2);(lastResult.top_strengths||[]).forEach(s=>{at(`✓ ${s}`,9,'normal',[30,30,30],2);sp(1);});sp(4);ln();
+    (lastResult.sections||[]).forEach(sec=>{
+      if(y>255){doc.addPage();y=M;}
+      doc.setFillColor(245,244,240);doc.roundedRect(M,y,CW,7,2,2,'F');
+      doc.setFontSize(8.5);doc.setFont('helvetica','bold');doc.setTextColor(30,30,30);
+      doc.text((sec.section_label||'Section').replace(/\n/g,' '),M+3,y+5);
+      doc.setTextColor(...(sec.score>=7?[45,125,82]:sec.score>=4?[180,83,9]:[185,28,28]));
+      doc.text(`${sec.score}/10`,W-M-3,y+5,{align:'right'});y+=11;
+      (sec.issues||[]).forEach(issue=>{
+        const c=issue.severity?.toLowerCase()==='high'?[185,28,28]:issue.severity?.toLowerCase()==='low'?[29,78,216]:[180,83,9];
+        at(`[${issue.severity||'?'}] ${issue.type||''}`,8,'bold',c,2);
+        at(issue.description||'',8,'normal',[60,60,60],5);sp(0.5);
+        if(issue.fix){at(`Fix: ${issue.fix}`,8,'italic',[45,125,82],5);}sp(2);
+      });
+      if(sec.meets?.length){at('✓ '+sec.meets.join(' · '),8,'normal',[45,125,82],2);}sp(5);
+    });
+    const pc=doc.getNumberOfPages();
+    for(let i=1;i<=pc;i++){doc.setPage(i);doc.setFontSize(7.5);doc.setFont('helvetica','normal');doc.setTextColor(180,180,180);doc.text(`QA Buddy · ${lastFileName} · Page ${i} of ${pc}`,M,293);}
+    doc.save(`QA-Report-${lastFileName.replace(/\.[^/.]+$/,'')}.pdf`);
+  }
+
+  init();
+</script>
+</body>
+</html>
